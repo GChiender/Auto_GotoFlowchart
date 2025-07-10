@@ -3,46 +3,55 @@ package main
 import (
 	"fmt"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"strings"
 
 	"Auto_GotoFlowchart/parser"
+	"Auto_GotoFlowchart/tools/writer"
 )
 
 func main() {
-	if len(os.Args) < 2 {
-		fmt.Println("❌ 用法: go run main.go <Go源文件路径>")
-		os.Exit(1)
+	inputPath := os.Getenv("GO_INPUT_FILE")
+	if inputPath == "" {
+		inputPath = "target/demo.go"
 	}
 
-	inputPath := os.Args[1]
+	base := strings.TrimSuffix(filepath.Base(inputPath), ".go")
+	dotPath := fmt.Sprintf("output/%s.dot", base)
+	drawioPath := fmt.Sprintf("output/%s.drawio", base)
 
-	// 1. 校验文件是否存在
-	if _, err := os.Stat(inputPath); os.IsNotExist(err) {
-		fmt.Printf("❌ 文件不存在: %s\n", inputPath)
-		os.Exit(1)
-	}
-
-	// 2. 构建 AST 流程图
+	// Step 1: 构建流程图 Graph
 	graph := parser.BuildFlowGraph(inputPath)
 
-	// 3. 确保 output 目录存在
-	outputDir := "output"
-	if err := os.MkdirAll(outputDir, 0755); err != nil {
-		fmt.Printf("❌ 创建输出目录失败: %v\n", err)
-		os.Exit(1)
+	// Step 2: 写入 .dot 文件
+	os.MkdirAll(filepath.Dir(dotPath), os.ModePerm)
+	dot := writer.WriteDOT(graph)
+	err := os.WriteFile(dotPath, []byte(dot), 0644)
+	if err != nil {
+		fmt.Println("❌ 写入 .dot 文件失败:", err)
+		return
+	}
+	fmt.Println("✅ 生成 DOT 文件:", dotPath)
+
+	// Step 3: 调用 Python 脚本转换为 drawio
+	cmd := exec.Command("python3", "tools/convert_dot_to_drawio.py", "--input", dotPath, "--output", drawioPath)
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+	if err := cmd.Run(); err != nil {
+		fmt.Println("❌ Python 脚本执行失败:", err)
+		return
+	}
+	fmt.Println("✅ 已生成 drawio 文件:", drawioPath)
+
+	// Step 4: 自动打开 draw.io 查看
+	err = exec.Command("open", drawioPath).Start() // macOS: 使用 "open"
+	// err = exec.Command("xdg-open", drawioPath).Start() // Linux
+	// err = exec.Command("cmd", "/C", "start", drawioPath).Start() // Windows
+	if err != nil {
+		fmt.Println("⚠️ 无法自动打开 drawio 文件:", err)
+		return
 	}
 
-	// 4. 生成 .dot 文件名（保留原文件名）
-	baseName := filepath.Base(inputPath)
-	baseNoExt := strings.TrimSuffix(baseName, filepath.Ext(baseName))
-	outputFile := filepath.Join(outputDir, baseNoExt+".dot")
-
-	// 5. 写入 DOT 文件
-	if err := parser.WriteDOT(graph, outputFile); err != nil {
-		fmt.Printf("❌ 写入 DOT 文件失败: %v\n", err)
-		os.Exit(1)
-	}
-
-	fmt.Printf("✅ 成功生成 DOT 文件: %s\n", outputFile)
+	fmt.Println("✅ 已尝试打开 draw.io 查看图形文件")
 }
