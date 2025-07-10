@@ -104,7 +104,7 @@ func visitNode(graph *Graph, node ast.Node, preID string, endID string) string {
 				preNOID = visitNodeSkippingEdge(graph, stmt, preNOID, endID)
 			}
 		} else {
-			preNOID = addNode(graph, "empty else", "box", condID, false)
+			preNOID = addNode(graph, "empty else", "box", condID, true)
 		}
 		graph.Edges = append(graph.Edges, Edge{From: condID, To: preNOID, Label: "No"})
 

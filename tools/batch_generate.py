@@ -31,8 +31,12 @@ def main():
         if filename.endswith(".go"):
             base = os.path.splitext(filename)[0]
             input_go = os.path.join(TARGET_DIR, filename)
-            output_dot = os.path.join(OUTPUT_DIR, f"{base}.dot")
-            output_drawio = os.path.join(OUTPUT_DIR, f"{base}.drawio")
+            dot_dir = os.path.join(OUTPUT_DIR, "dot")
+            drawio_dir = os.path.join(OUTPUT_DIR, "drawio")
+            os.makedirs(dot_dir, exist_ok=True)
+            os.makedirs(drawio_dir, exist_ok=True)
+            output_dot = os.path.join(dot_dir, f"{base}.dot")
+            output_drawio = os.path.join(drawio_dir, f"{base}.drawio")
 
             print(f"🔧 处理 {filename}...")
 

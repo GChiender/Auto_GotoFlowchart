@@ -18,8 +18,8 @@ func main() {
 	}
 
 	base := strings.TrimSuffix(filepath.Base(inputPath), ".go")
-	dotPath := fmt.Sprintf("output/%s.dot", base)
-	drawioPath := fmt.Sprintf("output/%s.drawio", base)
+	dotPath := fmt.Sprintf("output/dot/%s.dot", base)
+	drawioPath := fmt.Sprintf("output/drawio/%s.drawio", base)
 
 	// Step 1: 构建流程图 Graph
 	graph := parser.BuildFlowGraph(inputPath)
