@@ -1,21 +1,48 @@
 package main
 
 import (
-  "fmt"
+	"fmt"
+	"os"
+	"path/filepath"
+	"strings"
+
+	"Auto_GotoFlowchart/parser"
 )
 
-//TIP <p>To run your code, right-click the code and select <b>Run</b>.</p> <p>Alternatively, click
-// the <icon src="AllIcons.Actions.Execute"/> icon in the gutter and select the <b>Run</b> menu item from here.</p>
-
 func main() {
-  //TIP <p>Press <shortcut actionId="ShowIntentionActions"/> when your caret is at the underlined text
-  // to see how GoLand suggests fixing the warning.</p><p>Alternatively, if available, click the lightbulb to view possible fixes.</p>
-  s := "gopher"
-  fmt.Printf("Hello and welcome, %s!\n", s)
+	if len(os.Args) < 2 {
+		fmt.Println("❌ 用法: go run main.go <Go源文件路径>")
+		os.Exit(1)
+	}
 
-  for i := 1; i <= 5; i++ {
-	//TIP <p>To start your debugging session, right-click your code in the editor and select the Debug option.</p> <p>We have set one <icon src="AllIcons.Debugger.Db_set_breakpoint"/> breakpoint
-	// for you, but you can always add more by pressing <shortcut actionId="ToggleLineBreakpoint"/>.</p>
-	fmt.Println("i =", 100/i)
-  }
+	inputPath := os.Args[1]
+
+	// 1. 校验文件是否存在
+	if _, err := os.Stat(inputPath); os.IsNotExist(err) {
+		fmt.Printf("❌ 文件不存在: %s\n", inputPath)
+		os.Exit(1)
+	}
+
+	// 2. 构建 AST 流程图
+	graph := parser.BuildFlowGraph(inputPath)
+
+	// 3. 确保 output 目录存在
+	outputDir := "output"
+	if err := os.MkdirAll(outputDir, 0755); err != nil {
+		fmt.Printf("❌ 创建输出目录失败: %v\n", err)
+		os.Exit(1)
+	}
+
+	// 4. 生成 .dot 文件名（保留原文件名）
+	baseName := filepath.Base(inputPath)
+	baseNoExt := strings.TrimSuffix(baseName, filepath.Ext(baseName))
+	outputFile := filepath.Join(outputDir, baseNoExt+".dot")
+
+	// 5. 写入 DOT 文件
+	if err := parser.WriteDOT(graph, outputFile); err != nil {
+		fmt.Printf("❌ 写入 DOT 文件失败: %v\n", err)
+		os.Exit(1)
+	}
+
+	fmt.Printf("✅ 成功生成 DOT 文件: %s\n", outputFile)
 }
